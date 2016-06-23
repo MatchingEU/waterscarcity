@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <title>Matching - Water Scarcity | Thermal Power Plants</title>
+    <meta name="author" content="Mathieu Anderhalt">
+    <meta name="description" content="Map of waterscarcity and thermal plants in Europe">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAGXaiTsgyIfdVDSMt2Q3RsSqg-YXwmQVM&signed_in=true"></script>
+    <script src=https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js></script>
+    <script>
+
+// Initialize the map and the custom overlay.
+
+function initMap() {
+  var map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 5,
+    center: {lat: 45, lng: 2},
+    mapTypeId: google.maps.MapTypeId.TERRAIN
+  });
+  // Watersheds
+  var watersheds = new google.maps.Data();
+  watersheds.loadGeoJson('./data/watersheds.geojson');
+  // Set and apply styling to the stateLayer
+
+  watersheds.setStyle(function(feature) {
+   return {
+   fillColor: getColor(feature),
+   fillOpacity: 0.6,
+   strokeWeight: 0,
+   zIndex: 1
+   };
+  });
+
+  function getColor(feature){
+    var colorscale = d3.scale.quantile()
+      .range(['#ffffe5','#fff7bc','#fee391','#fec44f','#fe9929','#ec7014','#cc4c02','#993404','#662506'])
+      .domain([0,100])
+    //console.log(feature.getProperty('YR_NONIRRI'));
+    return colorscale(feature.getProperty('YR_NONIRRI'))
+  }
+
+  function getPlantColor(feature){
+    console.log(feature.getProperty('type'))
+    var color = {
+      "Coal":"#4a646c",
+      "Gas":"#bd559c",
+      "Geothermal":"#ffae1a",
+      "Nuclear":"#6ada8e"}
+    return color[feature.getProperty('type')]
+  }
+
+  watersheds.setMap(map)
+
+  // Power Plants
+  var infowindow = new google.maps.InfoWindow();
+  var powerplants = new google.maps.Data();
+  powerplants.loadGeoJson('./data/powerplants_endesa.geojson');
+
+  // Set event listener for each feature.
+  powerplants.addListener('click', function(event) {
+     infowindow.setContent(
+       "<b>Name : </b> <a href='http://globalenergyobservatory.org/form.php?pid=" +
+       event.feature.getProperty('id') +"'>" + event.feature.getProperty('name') +
+       "</a><br>"+
+       '<b>Operator : </b>' + event.feature.getProperty('operator')+"<br>"+
+       '<b>Type : </b>' + event.feature.getProperty('type')+"<br>"
+     );
+     infowindow.setPosition(event.latLng);
+     infowindow.setOptions({pixelOffset: new google.maps.Size(0,-34)});
+     infowindow.open(map);
+  });
+  powerplants.setStyle(function(feature){
+    return {
+      icon:{
+        path:"M-5,0a5,5 0 1,0 10,0a5,5 0 1,0 -10,0",
+        fillColor: getPlantColor(feature),
+        fillOpacity: 1,
+        strokeColor: 'white',
+        strokeWeight: 2,
+        scale: 1.8}}
+  })
+  powerplants.setMap(map)
+
+}
+
+google.maps.event.addDomListener(window, 'load', initMap);
+
+    </script>
+  </head>
+  <body>
+    <div id="map"></div>
+  </body>
+
+</html>
